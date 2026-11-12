@@ -1,0 +1,332 @@
+<title>GitOps Starter Prompt Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: form column on the left, sticky terminal-style prompt panel on the right; stacks on phones. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --ink: #16202E; --muted: #5A6678; --line: #D8DEE8;
+  --accent: #2B59C3; --accent-ink: #FFFFFF; --accent-soft: #E6EDFB;
+  --term-bg: #111A28; --term-fg: #D8E2F1; --term-dim: #7F8DA6; --term-line: #24324A; --ok: #1F8A5B;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C1119; --surface: #141B26; --ink: #E5EBF4; --muted: #95A2B6; --line: #263143;
+  --accent: #7FA3FF; --accent-ink: #0C1119; --accent-soft: #1B2740;
+  --term-bg: #080C13; --term-fg: #D8E2F1; --term-dim: #73819A; --term-line: #1C2638; --ok: #4CC38A;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0C1119; --surface: #141B26; --ink: #E5EBF4; --muted: #95A2B6; --line: #263143;
+  --accent: #7FA3FF; --accent-ink: #0C1119; --accent-soft: #1B2740;
+  --term-bg: #080C13; --term-fg: #D8E2F1; --term-dim: #73819A; --term-line: #1C2638; --ok: #4CC38A;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 32px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { display: grid; gap: 10px; margin-bottom: 24px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(26px, 4vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance; max-width: 22ch; }
+.lede { color: var(--muted); max-width: 62ch; margin: 0; }
+.steps { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: s; }
+.steps li { counter-increment: s; display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 12px 6px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.steps li::before { content: counter(s); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-family: var(--font-mono); font-size: 12px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+form { display: grid; gap: 16px; min-width: 0; }
+fieldset { margin: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 18px; display: grid; gap: 14px; min-width: 0; }
+legend { font-family: var(--font-display); font-weight: 500; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; padding: 0 6px; color: var(--muted); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+label { display: grid; gap: 6px; font-weight: 500; font-size: 14px; min-width: 0; }
+.hint { font-weight: 400; font-size: 12.5px; color: var(--muted); }
+input, select, textarea { font: inherit; font-weight: 400; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; width: 100%; }
+textarea { resize: vertical; min-height: 64px; }
+#features { font-family: var(--font-mono); font-size: 13.5px; min-height: 120px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.choices { display: grid; gap: 8px; }
+.choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-weight: 400; background: var(--bg); }
+.choice input { width: auto; margin-top: 3px; accent-color: var(--accent); }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice b { font-weight: 600; }
+
+.panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--term-bg); color: var(--term-fg); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 32px); min-width: 0; }
+@media (max-width: 900px) { .panel { position: static; max-height: none; } }
+.panel-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--term-line); }
+.file { font-family: var(--font-mono); font-size: 13px; }
+.stats { font-family: var(--font-mono); font-size: 12px; color: var(--term-dim); font-variant-numeric: tabular-nums; margin-right: auto; }
+button { font: inherit; font-weight: 600; font-size: 13.5px; border-radius: 7px; padding: 8px 14px; cursor: pointer; border: 1px solid transparent; }
+.btn-copy { background: var(--accent); color: var(--accent-ink); min-width: 118px; }
+.btn-copy.done { background: var(--ok); color: #fff; }
+.btn-ghost { background: transparent; color: var(--term-dim); border-color: var(--term-line); }
+.btn-ghost:hover { color: var(--term-fg); }
+pre#out { margin: 0; padding: 18px 16px; overflow: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; flex: 1; }
+pre#out .ph { color: #F2B45A; }
+.panel-foot { padding: 12px 16px; border-top: 1px solid var(--term-line); font-size: 13px; color: var(--term-dim); }
+.example-note { font-size: 12.5px; color: var(--muted); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.linkish { background: none; border: none; padding: 0; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">GitOps Mastery · Your own project</div>
+    <h1>Describe your app, get a Claude prompt for its starter codebase</h1>
+    <p class="lede">Fill in the form. The prompt on the right updates as you type. Paste it into Claude and you get a starter codebase with Dockerfiles, Kubernetes manifests and a README, ready to deploy on kind.</p>
+    <ol class="steps">
+      <li>Fill the form</li><li>Copy the prompt</li><li>Paste it into Claude</li><li>Deploy it on kind</li>
+    </ol>
+  </header>
+
+  <div class="grid">
+    <form id="f" autocomplete="off">
+      <div class="example-note">
+        <span>The form starts with an example app (Bookair). Replace it with your own.</span>
+        <button type="button" class="linkish" id="clear">Clear the form</button>
+        <button type="button" class="linkish" id="example">Load example</button>
+      </div>
+
+      <fieldset>
+        <legend>About you</legend>
+        <div class="row">
+          <label for="student">Your name <input id="student" name="student"></label>
+          <label for="github">GitHub username <input id="github" name="github" placeholder="without the @"></label>
+        </div>
+        <div class="choices" role="radiogroup" aria-label="Your coding comfort">
+          <span style="font-weight:500;font-size:14px">Your coding comfort</span>
+          <label class="choice"><input type="radio" id="lvl-b" name="level" value="beginner"><span><b>Beginner</b> · explain every file with comments</span></label>
+          <label class="choice"><input type="radio" id="lvl-i" name="level" value="intermediate"><span><b>Intermediate</b> · short comments on key parts</span></label>
+          <label class="choice"><input type="radio" id="lvl-a" name="level" value="advanced"><span><b>Advanced</b> · clean code, minimal comments</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Your application</legend>
+        <div class="row">
+          <label for="app">App name <input id="app" name="app"></label>
+          <label for="domain">Domain
+            <select id="domain" name="domain">
+              <option>E-commerce</option><option>Food delivery</option><option>Healthcare</option><option>Education</option>
+              <option>Banking / Fintech</option><option>Travel / Booking</option><option>Logistics</option><option>HR / Internal tool</option><option>Other</option>
+            </select>
+          </label>
+        </div>
+        <label for="what">What does it do? <span class="hint">One or two sentences</span>
+          <textarea id="what" name="what" rows="2"></textarea></label>
+        <label for="resource">Main thing the API manages <span class="hint">A plural noun, like products, patients, orders. It becomes the URL path.</span>
+          <input id="resource" name="resource"></label>
+        <label for="features">Core features <span class="hint">One per line. Keep it to 3–5 for the course.</span>
+          <textarea id="features" name="features"></textarea></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Tech choices</legend>
+        <label for="backend">Backend API
+          <select id="backend" name="backend">
+            <option value="python">Python · FastAPI</option>
+            <option value="node">Node.js · Express</option>
+            <option value="java">Java · Spring Boot</option>
+            <option value="go">Go · net/http</option>
+          </select>
+        </label>
+        <label for="frontend">Frontend
+          <select id="frontend" name="frontend">
+            <option value="plain">Plain HTML + JS on nginx</option>
+            <option value="react">React (Vite) built and served by nginx</option>
+          </select>
+        </label>
+        <label for="db">Database <span class="hint">Added later in the course</span>
+          <select id="db" name="db">
+            <option value="none">None for now: keep data in memory</option>
+            <option value="PostgreSQL">PostgreSQL</option>
+            <option value="MySQL">MySQL</option>
+            <option value="MongoDB">MongoDB</option>
+          </select>
+        </label>
+      </fieldset>
+    </form>
+
+    <section class="panel" aria-label="Generated prompt">
+      <div class="panel-head">
+        <span class="file">prompt.txt</span>
+        <span class="stats" id="stats"></span>
+        <button type="button" class="btn-ghost" id="select">Select all</button>
+        <button type="button" class="btn-copy" id="copy">Copy prompt</button>
+      </div>
+      <pre id="out" tabindex="0"></pre>
+      <div class="panel-foot">Paste the prompt into a new Claude chat. When the code arrives, follow its README to deploy on kind, then push it to your own GitHub repo and share the link in the class group. <span style="color:#F2B45A">Orange text</span> marks fields you still need to fill.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var EXAMPLE = {
+    student: "Amit Chhatbar", github: "amit-chhatbar", level: "intermediate",
+    app: "Bookair", domain: "Travel / Booking",
+    what: "Finds suitable flight options and books the tickets on the airline's website.",
+    resource: "flight bookings",
+    features: "Flight fare comparison\nRoutes by region (Middle East, Europe, etc.)\nFlight duration and number of stops\nTake-off and arrival times\nAirline booking options",
+    backend: "python", frontend: "react", db: "none"
+  };
+  var EMPTY = { student: "", github: "", level: "intermediate", app: "", domain: "E-commerce", what: "", resource: "", features: "", backend: "python", frontend: "plain", db: "none" };
+
+  var STACKS = {
+    python: { name: "Python 3.12 with FastAPI and uvicorn", tests: "pytest with FastAPI TestClient",
+      docker: "Dockerfile based on python:3.12-slim; run as a non-root user; copy requirements.txt first for layer caching." },
+    node: { name: "Node.js 20 with Express", tests: "Jest with supertest",
+      docker: "Dockerfile based on node:20-alpine; install with npm ci --omit=dev; run as the non-root node user; copy package.json and package-lock.json first for layer caching." },
+    java: { name: "Java 21 with Spring Boot 3 (Maven)", tests: "JUnit 5 with Spring MockMvc",
+      docker: "Multi-stage Dockerfile: build with maven:3.9-eclipse-temurin-21, run on eclipse-temurin:21-jre-alpine; run as a non-root user; copy pom.xml first and download dependencies for layer caching." },
+    go: { name: "Go 1.22 with the standard net/http package", tests: "go test with net/http/httptest",
+      docker: "Multi-stage Dockerfile: build with golang:1.22-alpine, run on alpine:3.20; run as a non-root user; copy go.mod (and go.sum if present) first for layer caching." }
+  };
+  var LEVELS = {
+    beginner: "I am a beginner. Explain every file with clear comments, and explain each command in the README.",
+    intermediate: "I am at an intermediate level. Add short comments on the important parts only.",
+    advanced: "I am an advanced developer. Write clean, idiomatic code with minimal comments."
+  };
+
+  var f = document.getElementById("f"), out = document.getElementById("out"), stats = document.getElementById("stats");
+  var KEY = "gitops-prompt-builder-v1";
+
+  function slug(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function read() {
+    var d = {}; ["student","github","app","domain","what","resource","features","backend","frontend","db"].forEach(function (k) { d[k] = f.elements[k].value; });
+    var c = f.querySelector('input[name="level"]:checked'); d.level = c ? c.value : "intermediate";
+    return d;
+  }
+  function fill(d) {
+    Object.keys(d).forEach(function (k) {
+      if (k === "level") { var r = f.querySelector('input[name="level"][value="' + d.level + '"]'); if (r) r.checked = true; }
+      else if (f.elements[k]) f.elements[k].value = d[k];
+    });
+  }
+  // Wrap a missing value in a marker that render() turns into an orange placeholder.
+  function v(val, ph) { val = String(val || "").trim(); return val ? val : "\u0000" + ph + "\u0001"; }
+
+  function build(d) {
+    var appName = v(d.app, "<App name>");
+    var s = slug(d.app) || "myapp";
+    var resSlug = slug(d.resource) || "items";
+    var resLabel = v(d.resource, "<what the API manages>");
+    var st = STACKS[d.backend];
+    var feats = d.features.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+    var featList = feats.length ? feats.map(function (x) { return "  - " + x; }).join("\n") : "  - " + v("", "<add 3–5 features, one per line>");
+    var frontend = d.frontend === "react"
+      ? "React with Vite, built in a multi-stage Dockerfile (node:20-alpine to build) and served by nginx:1.27-alpine"
+      : "Plain HTML, CSS and JavaScript (no build step) served by nginx:1.27-alpine";
+    var db = d.db === "none" ? "none for now"
+      : "none for now. " + d.db + " will be added later in the course, so keep data access in one small module that is easy to swap out";
+    var who = [d.student.trim(), d.github.trim() ? "GitHub @" + d.github.trim().replace(/^@/, "") : ""].filter(Boolean).join(" · ");
+
+    return [
+"I am a student in a GitOps training course (Kubernetes, kind, Argo CD). Create a complete, working starter codebase for my own application, following the structure below exactly. " + LEVELS[d.level],
+"",
+"## My application",
+"- Name: " + appName,
+"- Domain: " + d.domain,
+"- What it does: " + v(d.what, "<one or two sentences>"),
+"- The API manages: " + resLabel,
+"- Core features:",
+featList,
+"",
+"## Tech choices",
+"- Backend API: " + st.name + ", listening on port 8000",
+"- Frontend: " + frontend,
+"- Tests: " + st.tests,
+"- Database: " + db,
+"",
+"## Required structure (repository name: " + s + "-app)",
+s + "-app/",
+"├── backend/        API source, tests, Dockerfile, .dockerignore",
+"├── frontend/       UI, nginx.conf, Dockerfile",
+"├── k8s/            00-namespace.yaml, 10-api.yaml, 20-frontend.yaml",
+"├── kind-config.yaml",
+"├── .gitignore",
+"└── README.md",
+"",
+"## Backend requirements",
+"- Endpoints: GET /api/" + resSlug + " (list), GET /api/" + resSlug + "/{id} (one item, 404 if missing), plus one simple endpoint for each core feature above.",
+"- GET /healthz returns {\"status\":\"ok\"} (liveness) and GET /readyz returns {\"status\":\"ready\"} (readiness).",
+"- GET /api/info returns the service name, version, environment and pod name, read from the environment variables APP_VERSION (default \"v1.0.0\"), APP_ENV (default \"local\") and the hostname.",
+"- Keep data in memory (a hard-coded list of 6 realistic sample " + resLabel + "). No database yet.",
+"- At least 5 automated tests covering the list, get-by-id, 404, health and info endpoints.",
+"- " + st.docker,
+"",
+"## Frontend requirements",
+"- A clean, simple page that shows the " + resLabel + " as cards and a small badge with the API version, environment and pod name from /api/info.",
+"- nginx serves the UI and proxies every /api/ request to http://" + s + "-api:8000 (the Kubernetes Service name).",
+"- nginx answers GET /healthz with 200 for the readiness probe.",
+"- Show a friendly error message if the API cannot be reached.",
+"",
+"## Kubernetes requirements (plain YAML, no Helm or Kustomize yet)",
+"- Namespace: " + s,
+"- Deployment \"" + s + "-api\": 2 replicas, image " + s + "-api:v1, imagePullPolicy IfNotPresent, env APP_VERSION and APP_ENV=\"local-kind\", readiness probe on /readyz, liveness probe on /healthz, CPU and memory requests and limits.",
+"- Service \"" + s + "-api\": ClusterIP on port 8000.",
+"- Deployment \"" + s + "-frontend\": 1 replica, image " + s + "-frontend:v1, imagePullPolicy IfNotPresent, readiness probe on /healthz.",
+"- Service \"" + s + "-frontend\": NodePort 30080.",
+"- kind-config.yaml: cluster name \"" + s + "\", one control-plane node, extraPortMappings containerPort 30080 to hostPort 8080.",
+"",
+"## README requirements",
+"Write the README for a Windows student using Docker Desktop with WSL2 Ubuntu. Include:",
+"1. A short description and an ASCII diagram: Browser → frontend (NodePort 30080) → /api → " + s + "-api (ClusterIP).",
+"2. How to run the tests locally.",
+"3. Deploy on kind: kind create cluster --config kind-config.yaml; docker build both images with the tags above; kind load docker-image " + s + "-api:v1 " + s + "-frontend:v1 --name " + s + "; kubectl apply -f k8s/; open http://localhost:8080.",
+"4. How to verify: kubectl -n " + s + " get pods, curl localhost:8080/api/info.",
+"5. A small troubleshooting table (port 8080 busy, ImagePullBackOff, API not ready).",
+"6. Cleanup: kind delete cluster --name " + s + ".",
+"",
+"## Rules",
+"- Keep it small and focused: only the features listed. No authentication, no database server, no CI pipeline, no Helm, no Argo CD files yet; those come later in the course.",
+"- Every file must be complete and runnable. Pin dependency versions.",
+"- Output: if you can create files, create the whole project and give it to me as a single .zip. Otherwise, show the full folder tree first, then every file in its own code block with its path as the heading.",
+"- End with a short checklist of the commands I should run, in order.",
+"",
+"Student: " + v(who, "<your name · GitHub @username>")
+    ].join("\n");
+  }
+
+  var current = "";
+  function render() {
+    var d = read();
+    var raw = build(d);
+    current = raw.replace(/\u0000|\u0001/g, "");
+    out.textContent = "";
+    raw.split(/(\u0000[^\u0001]*\u0001)/).forEach(function (part) {
+      if (part.charAt(0) === "\u0000") { var sp = document.createElement("span"); sp.className = "ph"; sp.textContent = part.slice(1, -1); out.appendChild(sp); }
+      else if (part) out.appendChild(document.createTextNode(part));
+    });
+    stats.textContent = current.split("\n").length + " lines · " + current.length.toLocaleString() + " chars";
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
+  }
+
+  function selectOut() { var r = document.createRange(); r.selectNodeContents(out); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  var copyBtn = document.getElementById("copy");
+  copyBtn.addEventListener("click", function () {
+    function ok(msg) { copyBtn.textContent = msg; copyBtn.classList.add("done"); setTimeout(function () { copyBtn.textContent = "Copy prompt"; copyBtn.classList.remove("done"); }, 1800); }
+    try {
+      navigator.clipboard.writeText(current).then(function () { ok("Copied"); }, function () { selectOut(); ok("Press Ctrl+C"); });
+    } catch (e) { selectOut(); ok("Press Ctrl+C"); }
+  });
+  document.getElementById("select").addEventListener("click", selectOut);
+  document.getElementById("clear").addEventListener("click", function () { fill(EMPTY); render(); document.getElementById("student").focus(); });
+  document.getElementById("example").addEventListener("click", function () { fill(EXAMPLE); render(); });
+  f.addEventListener("input", render);
+  f.addEventListener("change", render);
+  f.addEventListener("submit", function (e) { e.preventDefault(); });
+
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  fill(saved || EXAMPLE);
+  render();
+})();
+</script>

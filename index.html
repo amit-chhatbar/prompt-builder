@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GitOps Starter Prompt Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,10 +80,12 @@ pre#out .ph { color: #F2B45A; }
 .linkish { background: none; border: none; padding: 0; color: var(--accent); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">GitOps Mastery · Your own project</div>
+    <div class="eyebrow">GitOps Mastery &#xB7; Your own project</div>
     <h1>Describe your app, get a Claude prompt for its starter codebase</h1>
     <p class="lede">Fill in the form. The prompt on the right updates as you type. Paste it into Claude and you get a starter codebase with Dockerfiles, Kubernetes manifests and a README, ready to deploy on kind.</p>
     <ol class="steps">
@@ -89,7 +96,7 @@ pre#out .ph { color: #F2B45A; }
   <div class="grid">
     <form id="f" autocomplete="off">
       <div class="example-note">
-        <span>The form starts with an example app (Bookair). Replace it with your own.</span>
+        <span>Fill in each field. Grey hint text shows an example (Bookair).</span>
         <button type="button" class="linkish" id="clear">Clear the form</button>
         <button type="button" class="linkish" id="example">Load example</button>
       </div>
@@ -97,21 +104,21 @@ pre#out .ph { color: #F2B45A; }
       <fieldset>
         <legend>About you</legend>
         <div class="row">
-          <label for="student">Your name <input id="student" name="student"></label>
+          <label for="student">Your name <input id="student" name="student" placeholder="e.g. Priya Shah"></label>
           <label for="github">GitHub username <input id="github" name="github" placeholder="without the @"></label>
         </div>
         <div class="choices" role="radiogroup" aria-label="Your coding comfort">
           <span style="font-weight:500;font-size:14px">Your coding comfort</span>
-          <label class="choice"><input type="radio" id="lvl-b" name="level" value="beginner"><span><b>Beginner</b> · explain every file with comments</span></label>
-          <label class="choice"><input type="radio" id="lvl-i" name="level" value="intermediate"><span><b>Intermediate</b> · short comments on key parts</span></label>
-          <label class="choice"><input type="radio" id="lvl-a" name="level" value="advanced"><span><b>Advanced</b> · clean code, minimal comments</span></label>
+          <label class="choice"><input type="radio" id="lvl-b" name="level" value="beginner"><span><b>Beginner</b> &#xB7; explain every file with comments</span></label>
+          <label class="choice"><input type="radio" id="lvl-i" name="level" value="intermediate"><span><b>Intermediate</b> &#xB7; short comments on key parts</span></label>
+          <label class="choice"><input type="radio" id="lvl-a" name="level" value="advanced"><span><b>Advanced</b> &#xB7; clean code, minimal comments</span></label>
         </div>
       </fieldset>
 
       <fieldset>
         <legend>Your application</legend>
         <div class="row">
-          <label for="app">App name <input id="app" name="app"></label>
+          <label for="app">App name <input id="app" name="app" placeholder="e.g. Bookair"></label>
           <label for="domain">Domain
             <select id="domain" name="domain">
               <option>E-commerce</option><option>Food delivery</option><option>Healthcare</option><option>Education</option>
@@ -120,21 +127,21 @@ pre#out .ph { color: #F2B45A; }
           </label>
         </div>
         <label for="what">What does it do? <span class="hint">One or two sentences</span>
-          <textarea id="what" name="what" rows="2"></textarea></label>
+          <textarea id="what" name="what" rows="2" placeholder="e.g. Finds suitable flight options and books the tickets on the airline's website."></textarea></label>
         <label for="resource">Main thing the API manages <span class="hint">A plural noun, like products, patients, orders. It becomes the URL path.</span>
-          <input id="resource" name="resource"></label>
-        <label for="features">Core features <span class="hint">One per line. Keep it to 3–5 for the course.</span>
-          <textarea id="features" name="features"></textarea></label>
+          <input id="resource" name="resource" placeholder="e.g. flight bookings"></label>
+        <label for="features">Core features <span class="hint">One per line. Keep it to 3&#x2013;5 for the course.</span>
+          <textarea id="features" name="features" placeholder="e.g.&#10;Compare flight fares&#10;Filter flights by number of stops&#10;Show take-off and arrival times"></textarea></label>
       </fieldset>
 
       <fieldset>
         <legend>Tech choices</legend>
         <label for="backend">Backend API
           <select id="backend" name="backend">
-            <option value="python">Python · FastAPI</option>
-            <option value="node">Node.js · Express</option>
-            <option value="java">Java · Spring Boot</option>
-            <option value="go">Go · net/http</option>
+            <option value="python">Python &#xB7; FastAPI</option>
+            <option value="node">Node.js &#xB7; Express</option>
+            <option value="java">Java &#xB7; Spring Boot</option>
+            <option value="go">Go &#xB7; net/http</option>
           </select>
         </label>
         <label for="frontend">Frontend
@@ -196,7 +203,9 @@ pre#out .ph { color: #F2B45A; }
   };
 
   var f = document.getElementById("f"), out = document.getElementById("out"), stats = document.getElementById("stats");
-  var KEY = "gitops-prompt-builder-v1";
+  // Start with name, GitHub username, app name and core features blank; other fields keep example text.
+  var DEFAULTS = Object.assign({}, EXAMPLE, { student: "", github: "", app: "", what: "", resource: "", features: "" });
+  var KEY = "gitops-prompt-builder-v4";
 
   function slug(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
   function read() {
@@ -215,18 +224,18 @@ pre#out .ph { color: #F2B45A; }
 
   function build(d) {
     var appName = v(d.app, "<App name>");
-    var s = slug(d.app) || "myapp";
-    var resSlug = slug(d.resource) || "items";
+    var s = slug(d.app) || v("", "<app-name>");
+    var resSlug = slug(d.resource) || v("", "<resource>");
     var resLabel = v(d.resource, "<what the API manages>");
     var st = STACKS[d.backend];
     var feats = d.features.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
-    var featList = feats.length ? feats.map(function (x) { return "  - " + x; }).join("\n") : "  - " + v("", "<add 3–5 features, one per line>");
+    var featList = feats.length ? feats.map(function (x) { return "  - " + x; }).join("\n") : "  - " + v("", "<add 3\u20135 features, one per line>");
     var frontend = d.frontend === "react"
       ? "React with Vite, built in a multi-stage Dockerfile (node:20-alpine to build) and served by nginx:1.27-alpine"
       : "Plain HTML, CSS and JavaScript (no build step) served by nginx:1.27-alpine";
     var db = d.db === "none" ? "none for now"
       : "none for now. " + d.db + " will be added later in the course, so keep data access in one small module that is easy to swap out";
-    var who = [d.student.trim(), d.github.trim() ? "GitHub @" + d.github.trim().replace(/^@/, "") : ""].filter(Boolean).join(" · ");
+    var who = [d.student.trim(), d.github.trim() ? "GitHub @" + d.github.trim().replace(/^@/, "") : ""].filter(Boolean).join(" \u00B7 ");
 
     return [
 "I am a student in a GitOps training course (Kubernetes, kind, Argo CD). Create a complete, working starter codebase for my own application, following the structure below exactly. " + LEVELS[d.level],
@@ -246,13 +255,15 @@ featList,
 "- Database: " + db,
 "",
 "## Required structure (repository name: " + s + "-app)",
+"```text",
 s + "-app/",
-"├── backend/        API source, tests, Dockerfile, .dockerignore",
-"├── frontend/       UI, nginx.conf, Dockerfile",
-"├── k8s/            00-namespace.yaml, 10-api.yaml, 20-frontend.yaml",
-"├── kind-config.yaml",
-"├── .gitignore",
-"└── README.md",
+"\u251C\u2500\u2500 backend/        API source, tests, Dockerfile, .dockerignore",
+"\u251C\u2500\u2500 frontend/       UI, nginx.conf, Dockerfile",
+"\u251C\u2500\u2500 k8s/            00-namespace.yaml, 10-api.yaml, 20-frontend.yaml",
+"\u251C\u2500\u2500 kind-config.yaml",
+"\u251C\u2500\u2500 .gitignore",
+"\u2514\u2500\u2500 README.md",
+"```",
 "",
 "## Backend requirements",
 "- Endpoints: GET /api/" + resSlug + " (list), GET /api/" + resSlug + "/{id} (one item, 404 if missing), plus one simple endpoint for each core feature above.",
@@ -278,7 +289,7 @@ s + "-app/",
 "",
 "## README requirements",
 "Write the README for a Windows student using Docker Desktop with WSL2 Ubuntu. Include:",
-"1. A short description and an ASCII diagram: Browser → frontend (NodePort 30080) → /api → " + s + "-api (ClusterIP).",
+"1. A short description and an ASCII diagram: Browser \u2192 frontend (NodePort 30080) \u2192 /api \u2192 " + s + "-api (ClusterIP).",
 "2. How to run the tests locally.",
 "3. Deploy on kind: kind create cluster --config kind-config.yaml; docker build both images with the tags above; kind load docker-image " + s + "-api:v1 " + s + "-frontend:v1 --name " + s + "; kubectl apply -f k8s/; open http://localhost:8080.",
 "4. How to verify: kubectl -n " + s + " get pods, curl localhost:8080/api/info.",
@@ -291,7 +302,7 @@ s + "-app/",
 "- Output: if you can create files, create the whole project and give it to me as a single .zip. Otherwise, show the full folder tree first, then every file in its own code block with its path as the heading.",
 "- End with a short checklist of the commands I should run, in order.",
 "",
-"Student: " + v(who, "<your name · GitHub @username>")
+"Student: " + v(who, "<your name \u00B7 GitHub @username>")
     ].join("\n");
   }
 
@@ -305,7 +316,7 @@ s + "-app/",
       if (part.charAt(0) === "\u0000") { var sp = document.createElement("span"); sp.className = "ph"; sp.textContent = part.slice(1, -1); out.appendChild(sp); }
       else if (part) out.appendChild(document.createTextNode(part));
     });
-    stats.textContent = current.split("\n").length + " lines · " + current.length.toLocaleString() + " chars";
+    stats.textContent = current.split("\n").length + " lines \u00B7 " + current.length.toLocaleString() + " chars";
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
   }
 
@@ -326,7 +337,10 @@ s + "-app/",
 
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
-  fill(saved || EXAMPLE);
+  fill(saved || DEFAULTS);
   render();
 })();
 </script>
+
+</body>
+</html>
